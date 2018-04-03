@@ -6,7 +6,7 @@
 One VM has an aggregator and a leaf node and other VM has two leaf nodes.
 
 ## Schema Design
-1. Create payment transactions table
+- Create payment transactions table
 
 ```
 CREATE TABLE `transactions` (
@@ -42,7 +42,8 @@ CREATE TABLE `transactions` (
   /*!90618 SHARD */ KEY `OUTLET_KEY` (`OUTLET_KEY`)
 ) /*!90621 AUTOSTATS_ENABLED=TRUE */
 ```
-2. Create outlet table which has user-outlet relationship.
+
+- Create outlet table which has user-outlet relationship.
 
 ```
 CREATE TABLE `outlet` (
@@ -52,16 +53,18 @@ CREATE TABLE `outlet` (
   /*!90618 SHARD */ KEY `OUTLET_KEY` (`OUTLET_KEY`)
 ) /*!90621 AUTOSTATS_ENABLED=TRUE */
 ```
-3. Load 1.2B rows into transactions table
 
-4. Evenly distribute outlets numbering 120k into 20 users - Large corporates users
+- Load 1.2B rows into transactions table
+
+- Evenly distribute outlets numbering 120k into 20 users - Large corporates users
 
 ```
 insert into mymemsqldb.outlet 
 select a.outlet_key, mod(a.outlet_key,20) as user_key
 from (select distinct outlet_key from mymemsqldb.transactions) a;
 ```
-5. Add two users with only a few outlets - SME users
+
+- Add two users with only a few outlets - SME users
 
 ```
 insert into mymemsqldb.outlet values (0,20); 
@@ -74,14 +77,14 @@ insert into mymemsqldb.outlet values (5,21);
 
 ## Memsql Ops screens
 
-1. Cluster
+- Cluster
 ![cluster](images/cluster.PNG)
 
-2. Status
+- Status
 ![status](images/status.PNG)
 
-3. Transactions table
+- Transactions table
 ![Transactions](images/transactions.PNG)
 
-4. Outlet table
+- Outlet table
 ![Outlet](images/outlet.PNG)
