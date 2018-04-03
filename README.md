@@ -78,13 +78,13 @@ insert into mymemsqldb.outlet values (5,21);
 ## Memsql Ops screens
 
 1. Cluster
-![cluster](images/cluster.png)
+![cluster](images/cluster.PNG)
 
-1. Status
-![status](images/status.png)
+2. Status
+![status](images/status.PNG)
 
-1. Transactions table
-![Transactions](images/transactions.png)
+3. Transactions table
+![Transactions](images/transactions.PNG)
 
-1. Outlet table
-![Outlet](images/outlet.png)
+4. Outlet table
+![Outlet](images/outlet.PNG)
