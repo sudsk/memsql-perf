@@ -88,3 +88,31 @@ insert into mymemsqldb.outlet values (5,21);
 
 - Outlet table
 ![Outlet](images/outlet.PNG)
+
+## Performance tests
+
+- Query for a corporate user (~6k outlets, 12,413,120 records with below filters)
+```
+select a.*
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY 
+and transaction_datetime > '2017-10-03' 
+and transaction_datetime < '2018-04-03' 
+and b.USER_KEY = 0
+order by transaction_datetime asc 
+limit 10 offset 100;
+```
+Response - 300ms
+
+- Query for a SME user (1 outlet, 2064 records with below filters)
+```
+select a.*
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY 
+and transaction_datetime > '2017-10-03' 
+and transaction_datetime < '2018-04-03' 
+and b.USER_KEY = 20
+order by transaction_datetime asc 
+limit 10 offset 100;
+```
+Response - 700ms
