@@ -2,6 +2,7 @@
 
 ## Infrastructure
 2 VMs on GCP. Each VM having 8 vCPUs, 20 GB memory and SSD disks in europe-west2-a zone.
+
 One VM has an aggregator and a leaf node and other VM has two leaf nodes.
 
 ## Schema Design
