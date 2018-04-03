@@ -42,7 +42,6 @@ CREATE TABLE `transactions` (
   /*!90618 SHARD */ KEY `OUTLET_KEY` (`OUTLET_KEY`)
 ) /*!90621 AUTOSTATS_ENABLED=TRUE */
 ```
-
 2. Create outlet table which has user-outlet relationship.
 
 ```
@@ -53,7 +52,6 @@ CREATE TABLE `outlet` (
   /*!90618 SHARD */ KEY `OUTLET_KEY` (`OUTLET_KEY`)
 ) /*!90621 AUTOSTATS_ENABLED=TRUE */
 ```
-
 3. Load 1.2B rows into transactions table
 
 4. Evenly distribute outlets numbering 120k into 20 users - Large corporates users
@@ -63,7 +61,6 @@ insert into mymemsqldb.outlet
 select a.outlet_key, mod(a.outlet_key,20) as user_key
 from (select distinct outlet_key from mymemsqldb.transactions) a;
 ```
-
 5. Add two users with only a few outlets - SME users
 
 ```
