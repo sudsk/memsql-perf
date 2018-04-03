@@ -6,7 +6,7 @@
 One VM has an aggregator and a leaf node and other VM has two leaf nodes.
 
 ## Schema Design
-1. Create table payment transactions
+1. Create payment transactions table
 
 ```
 CREATE TABLE `transactions` (
@@ -43,7 +43,7 @@ CREATE TABLE `transactions` (
 ) /*!90621 AUTOSTATS_ENABLED=TRUE */
 ```
 
-2. Create table outlet which has user-outlet relationship.
+2. Create outlet table which has user-outlet relationship.
 
 ```
 CREATE TABLE `outlet` (
