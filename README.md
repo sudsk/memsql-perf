@@ -206,9 +206,13 @@ limit 10 offset 100;
 ```
 
 First run - 2.004s (after cluster restart)
+
 Second run - 0.267s
+
 Third run - 1.235s (changed date filter from '2017-06-01' to '2017-07-01')
+
 Fourth run - 0.245s (changed user_key from 0 to 1)
+
 
 /**********************************
 Query#2 for a SME user (1 outlet)
@@ -224,14 +228,20 @@ order by transaction_datetime asc
 limit 10 offset 100;
 ```
 
-User-Key = 21 (5 outlets)
+**User-Key = 21 (5 outlets)**
+
 First run - 3.47s
+
 Second run - 2.71s 
+
 Third run - 1.10s
+
 Fourth run - 0.97s
 
-User-Key = 20 (1 outlet)
+**User-Key = 20 (1 outlet)**
+
 First run - 2.25s
+
 Second run - 1.08s 
 
 /**********************************
@@ -249,10 +259,12 @@ limit 10 offset 100;
 ```
 
 First run - 1.559s
+
 Second run - 0.325s 
+
 Third run - 0.238s
 
-/*********************************
+/**********************************
 Query#4 - value and volume for last 30 days
 **********************************/
 ```
@@ -269,9 +281,10 @@ and b.USER_KEY = 0;
 9.761605461778723E7,973088
 
 First time - 3.444
+
 Second time - 0.248
 
-/* ********************************
+/**********************************
 Query#5 - transaction value by channel, last 30 days
 **********************************/
 ```
@@ -286,14 +299,19 @@ Group by TRANSACTION_TYPE_KEY;
 ```
 
 1	9.654641792452884E7	961280
+
 3	9.761605461778724E7	973088
+
 2	9.570688765310541E7	961280
+
 0	9.792846812215719E7	976864
 
 
 First run - 2.437
+
 Second run - 0.277
-/* ********************************
+
+/**********************************
 Query#6 - sales value, last 30 days
 **********************************/
 ```
@@ -308,10 +326,12 @@ and b.USER_KEY = 0;
 ```
 
 4.8516737101162374E7	484548
+
 First run - 2.725s
+
 Second run - 0.218s
 
-/* ********************************
+/**********************************
 Query#7 - populate slide bar for last 90 days
 **********************************/
 ```
@@ -326,10 +346,12 @@ Group by transaction_date;
 ```
 
 --90 records returned
+
 First run - 2.655s
+
 Second run - 0.812s
 
-/* ********************************
+/**********************************
 Query#8 - Breakdown by card type - 2 weeks
 **********************************/
 ```
@@ -344,10 +366,12 @@ Group by transaction_date, CARD_PRODUCT_TYPE_KEY;
 ```
 
 -- 406 rows
+
 First run - 2.066s
+
 Second run - 0.289s
 
-/* ********************************
+/**********************************
 Query#9 - Breakdown by card scheme - 2 weeks
 **********************************/
 ```
@@ -362,10 +386,12 @@ Group by transaction_date, CARD_SCHEME_KEY;
 ```
 
 --225 records
+
 First run - 2.43s
+
 Second run - 0.627s
  
-/* ********************************
+/**********************************
 Query#10 - Just for fun, trying to force a full able scan for a similar, large query
 **********************************/
 ```
@@ -381,9 +407,10 @@ limit 10 offset 10000;
 ```
 
 First run - 6.966s
+
 Second run - 0.546s
  
-/* ********************************
+/**********************************
 Query#11 - Just for fun, Same query retrieving only three columns
 **********************************/
 ```
@@ -398,8 +425,9 @@ order by transaction_datetime asc
 limit 10 offset 10000;
 ```
 
-First time - 3.956s
-Second time - 0.116s
+First run - 3.956s
+
+Second run - 0.116s
 
 ## Questions
 
