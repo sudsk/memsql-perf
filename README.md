@@ -429,6 +429,18 @@ First run - 3.956s
 
 Second run - 0.116s
 
+/**********************************
+Query#12 - Simple Update
+**********************************/
+```
+update mymemsqldb.transactions
+set SETTLEMENT_AMOUNT = TRANSACTION_AMOUNT
+where outlet_key = 0;
+```
+
+19,528 rows updated. 
+18.72s
+
 ## Questions
 
 1. I'm getting faster response time for a user having ~6k outlet access compared with a user with 1-5 outlet access. This was observed even after repeatedly running the queries. The user with 1 outlet is accessing very small dataset. 
