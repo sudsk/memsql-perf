@@ -1,11 +1,58 @@
-# Memsql performance evaluation
+# MemSQL performance evaluation
 
 ## Infrastructure
-2 VMs on GCP. Each VM having 8 vCPUs, 20 GB memory and SSD disks in europe-west2-a zone.
+2 VMs provisioned on Google Cloud Platform in europe-west2-a zone. 
 
-One VM has an aggregator and a leaf node and other VM has two leaf nodes.
+- VM#1 
+  - Machine type - custom (8 vCPUs, 20 GB memory)
+  - CPU platform - Intel Broadwell
+  - 50GB SSD persistent disk 
+  - source image - debian-9-stretch-v20180307
+  - MemSQL - Master aggregator and a leaf node
+
+- VM#2 
+  - Machine type - custom (8 vCPUs, 20 GB memory)
+  - CPU platform - Intel Broadwell
+  - 90GB SSD persistent disk 
+  - source image - debian-9-stretch-v20180307
+  - MemSQL - Two leaf nodes
+
+## Install MemSQL on both VMs
+Download the software
+```
+cd /tmp
+wget http://download.memsql.com/memsql-ops-6.0.10/memsql-ops-6.0.10.tar.gz
+tar zxvf memsql-ops-6.0.10.tar.gz
+```
+Run the installer
+```
+cd memsql-ops-6.0.10
+sudo ./install.sh
+```
+
+Make the second VM follow the first one. At this point MemSQL Ops Web UI should be able to see both VMs as part of cluster.
+```
+memsql-ops follow -h <master-vm-ip>
+```
+
+From the MemSQL Ops Web UI, add MemSQL nodes with one master and three leaf node roles across the two VMs.
+
+For starting/stopping the cluster use the below commands
+```
+memsql-ops memsql-stop --all
+memsql-ops memsql-start --all
+```
 
 ## Schema Design
+
+- Create database
+
+```
+create database mymemsqldb;
+show databases;
+use mymemsqldb;
+```
+
 - Create payment transactions table
 
 ```
@@ -43,7 +90,59 @@ CREATE TABLE `transactions` (
 ) /*!90621 AUTOSTATS_ENABLED=TRUE */
 ```
 
-- Create outlet table which has user-outlet relationship.
+- Used Oracle SQL query to generate data and exported to csv 
+
+```
+SELECT mod(column_value,15013) as OUTLET_KEY,
+trunc(current_date - interval '1' second * column_value) as TRADING_DATE,
+trunc(current_date - interval '1' second * column_value + interval '1' day) as PROCESSING_DATE,
+(current_date - interval '1' second * column_value) as TRANSACTION_DATETIME,
+trunc(current_date - interval '1' second * column_value) as TRANSACTION_DATE,
+16 as CARD_NUMBER_LENGTH,
+trunc(dbms_random.value() * (999999-100000) + 100000) as CARD_NUMBER_LEFT,
+trunc(DBMS_RANDOM.VALUE() * (9999-1000) + 1000) as CARDT_NUMBER_RIGHT,
+'12/19' as card_expiry_date,
+'01' as card_issuer_number,
+'01/17' as card_start_date,
+mod(column_value,4) transaction_type_key, 
+mod(column_value,16) transaction_source_key,
+0 as settlement_amount,
+'GBP' as settlement_currency_key,
+round(dbms_random.value()*200,2) as transaction_amount,
+'GBP' as transaction_currency_key,
+mod(column_value,2) as acquired_processed_key,
+mod(mod(column_value,29),11) as CARD_PRODUCT_KEY,
+mod(column_value,29) as CARD_PRODUCT_TYPE_KEY,
+mod(mod(column_value,29),3) as CARD_SCHEME_KEY,	
+mod(column_value,11) as sequence_no,
+lpad(round(dbms_random.value()*4000),4,1) as auth_code,
+mod(column_value,11) as auth_method_key,
+round(dbms_random.value()*4000) as receipt_number,
+0 as cash_amount,
+'W0400000S8157200942'||round(mod(column_value,15013)) as originators_transaction_ref,
+round(dbms_random.value()*50000) as ticket_number
+FROM table(swe_datatools.generate_series(1,100000000));
+```
+
+- Load 2.3B rows into transactions table.
+
+```
+memsql> load data infile '/home/suds123/export11.csv' into table mymemsqldb.transactions columns terminated by ',' optionally enclosed by '"' lines terminated by '\r\n'  ignore 1 lines (OUTLET_KEY,@TRADING_DATE,@PROCESSING_DATE,@TRANSACTION_DATETIME,@TRANSACTION_DATE,CARD_NUMBER_LENGTH,CARD_NUMBER_LEFT,CARD_NUMBER_RIGHT,CARD_EXPIRY_DATE,CARD_ISSUER_NUMBER,CARD_START_DATE,TRANSACTION_TYPE_KEY,TRANSACTION_SOURCE_KEY,SETTLEMENT_AMOUNT,SETTLEMENT_CURRENCY_KEY,TRANSACTION_AMOUNT,TRANSACTION_CURRENCY_KEY,ACQUIRED_PROCESSED_KEY,CARD_PRODUCT_KEY,CARD_PRODUCT_TYPE_KEY,CARD_SCHEME_KEY,SEQUENCE_NO,AUTH_CODE,AUTH_METHOD_KEY,RECEIPT_NUMBER,CASH_AMOUNT,ORIGINATORS_TRANSACTION_REF,TICKET_NUMBER) set TRADING_DATE = STR_TO_DATE(@TRADING_DATE, '%d-%b-%y'), PROCESSING_DATE = STR_TO_DATE(@PROCESSING_DATE, '%d-%b-%y'), TRANSACTION_DATETIME = STR_TO_DATE(@TRANSACTION_DATETIME, '%d-%b-%y %H.%i.%S'), TRANSACTION_DATE = STR_TO_DATE(@TRANSACTION_DATE, '%d-%b-%y');
+```
+
+```
+-- Used two strategies of adding more outlets and more data (5 mins interval) for existing outlets.  
+memsql> insert into mymemsqldb.transactions 
+    -> select OUTLET_KEY + 64000,TRADING_DATE,PROCESSING_DATE,ADDDATE(TRANSACTION_DATETIME, INTERVAL 5 MINUTE),DATE(ADDDATE(TRANSACTION_DATETIME, INTERVAL 5 MINUTE)),
+    -> CARD_NUMBER_LENGTH,CARD_NUMBER_LEFT,CARD_NUMBER_RIGHT,CARD_EXPIRY_DATE,CARD_ISSUER_NUMBER,
+    -> CARD_START_DATE,TRANSACTION_TYPE_KEY,TRANSACTION_SOURCE_KEY,SETTLEMENT_AMOUNT,SETTLEMENT_CURRENCY_KEY,
+    -> TRANSACTION_AMOUNT,TRANSACTION_CURRENCY_KEY,ACQUIRED_PROCESSED_KEY,CARD_PRODUCT_KEY,
+    -> CARD_PRODUCT_TYPE_KEY,CARD_SCHEME_KEY,SEQUENCE_NO,AUTH_CODE,AUTH_METHOD_KEY,RECEIPT_NUMBER,
+    -> CASH_AMOUNT,ORIGINATORS_TRANSACTION_REF,TICKET_NUMBER
+    -> from mymemsqldb.transactions a;
+```
+
+- Create outlet table which stores user-outlet relationship i.e. a user has data role access to which outlets.
 
 ```
 CREATE TABLE `outlet` (
@@ -54,9 +153,7 @@ CREATE TABLE `outlet` (
 ) /*!90621 AUTOSTATS_ENABLED=TRUE */
 ```
 
-- Load 1.2B rows into transactions table
-
-- Evenly distribute outlets numbering 120k into 20 users - Large corporates users
+- Evenly distribute outlets numbering 120k into 20 users (~6k outlets/user) - Large corporates users
 
 ```
 insert into mymemsqldb.outlet 
@@ -64,15 +161,15 @@ select a.outlet_key, mod(a.outlet_key,20) as user_key
 from (select distinct outlet_key from mymemsqldb.transactions) a;
 ```
 
-- Add two users with only a few outlets - SME users
+- Add two users (20 & 21) with only a few outlets - SME users
 
 ```
-insert into mymemsqldb.outlet values (0,20); 
-insert into mymemsqldb.outlet values (1,21);
-insert into mymemsqldb.outlet values (2,21);
-insert into mymemsqldb.outlet values (3,21);
-insert into mymemsqldb.outlet values (4,21);
-insert into mymemsqldb.outlet values (5,21);
+insert into mymemsqldb.outlet (outlet_key, user_key) values (0,20); 
+insert into mymemsqldb.outlet (outlet_key, user_key) values (1,21);
+insert into mymemsqldb.outlet (outlet_key, user_key) values (2,21);
+insert into mymemsqldb.outlet (outlet_key, user_key) values (3,21);
+insert into mymemsqldb.outlet (outlet_key, user_key) values (4,21);
+insert into mymemsqldb.outlet (outlet_key, user_key) values (5,21);
 ```
 
 ## Memsql Ops screens
