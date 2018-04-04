@@ -180,6 +180,9 @@ insert into mymemsqldb.outlet (outlet_key, user_key) values (5,21);
 - Status
 ![status](images/status.PNG)
 
+- Schema
+![Schema](images/schema.PNG)
+
 - Transactions table
 ![Transactions](images/transactions.PNG)
 
