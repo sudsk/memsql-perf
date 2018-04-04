@@ -190,35 +190,222 @@ insert into mymemsqldb.outlet (outlet_key, user_key) values (5,21);
 ![Outlet](images/outlet.PNG)
 
 ## Performance tests
+/**********************************
+Query#1 for a corporate user (~6k outlets)
+**********************************/
 
-- Query for a corporate user (~6k outlets, 12,413,120 records with below filters)
 ```
 select a.*
 from mymemsqldb.transactions a , mymemsqldb.outlet b
 where a.outlet_key = b.OUTLET_KEY 
-and transaction_datetime > '2017-10-03' 
-and transaction_datetime < '2018-04-03' 
-and b.USER_KEY = 0
+and transaction_datetime > '2017-07-01'   -- changed
+and transaction_datetime < '2018-03-01' 
+and b.USER_KEY = 1                        -- changed
 order by transaction_datetime asc 
 limit 10 offset 100;
 ```
-Response - 300ms
 
-- Query for a SME user (1 outlet, 2064 records with below filters)
+First run - 2.004s (after cluster restart)
+Second run - 0.267s
+Third run - 1.235s (changed date filter from '2017-06-01' to '2017-07-01')
+Fourth run - 0.245s (changed user_key from 0 to 1)
+
+/**********************************
+Query#2 for a SME user (1 outlet)
+**********************************/
 ```
 select a.*
 from mymemsqldb.transactions a , mymemsqldb.outlet b
 where a.outlet_key = b.OUTLET_KEY 
-and transaction_datetime > '2017-10-03' 
-and transaction_datetime < '2018-04-03' 
+and transaction_datetime > '2017-07-01' 
+and transaction_datetime < '2018-03-01' 
 and b.USER_KEY = 20
 order by transaction_datetime asc 
 limit 10 offset 100;
 ```
-Response - 700ms
+
+User-Key = 21 (5 outlets)
+First run - 3.47s
+Second run - 2.71s 
+Third run - 1.10s
+Fourth run - 0.97s
+
+User-Key = 20 (1 outlet)
+First run - 2.25s
+Second run - 1.08s 
+
+/**********************************
+Query#3 - 10 recs for corporate user, 6 months
+**********************************/
+```
+select a.*
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2017-10-03'
+and transaction_datetime < '2018-04-03'
+and b.USER_KEY = 0
+order by transaction_datetime asc
+limit 10 offset 100;
+```
+
+First run - 1.559s
+Second run - 0.325s 
+Third run - 0.238s
+
+/*********************************
+Query#4 - value and volume for last 30 days
+**********************************/
+```
+select sum(TRANSACTION_AMOUNT) value, count(*) volume
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2017-10-03'
+and transaction_datetime <= '2017-11-03'
+and TRANSACTION_TYPE_KEY = 3 -- refunds
+and SETTLEMENT_CURRENCY_KEY = 'GBP'
+and b.USER_KEY = 0;
+```
+
+9.761605461778723E7,973088
+
+First time - 3.444
+Second time - 0.248
+
+/* ********************************
+Query#5 - transaction value by channel, last 30 days
+**********************************/
+```
+select TRANSACTION_TYPE_KEY, sum(TRANSACTION_AMOUNT) value, count(*) volume
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2017-10-03'
+and transaction_datetime <= '2017-11-03'
+and SETTLEMENT_CURRENCY_KEY = 'GBP'
+and b.USER_KEY = 0
+Group by TRANSACTION_TYPE_KEY;
+```
+
+1	9.654641792452884E7	961280
+3	9.761605461778724E7	973088
+2	9.570688765310541E7	961280
+0	9.792846812215719E7	976864
+
+
+First run - 2.437
+Second run - 0.277
+/* ********************************
+Query#6 - sales value, last 30 days
+**********************************/
+```
+select sum(TRANSACTION_AMOUNT) value, count(*) volume
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2017-10-03'
+and transaction_datetime <= '2017-11-03'
+and TRANSACTION_SOURCE_KEY in (0,1) -- 0 - sales, 1 - purchase with cashback
+and SETTLEMENT_CURRENCY_KEY = 'GBP'
+and b.USER_KEY = 0;
+```
+
+4.8516737101162374E7	484548
+First run - 2.725s
+Second run - 0.218s
+
+/* ********************************
+Query#7 - populate slide bar for last 90 days
+**********************************/
+```
+select transaction_date, sum(TRANSACTION_AMOUNT) value, count(*) volume
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2017-08-03'
+and transaction_datetime <= '2017-11-03'
+and SETTLEMENT_CURRENCY_KEY = 'GBP'
+and b.USER_KEY = 0
+Group by transaction_date;
+```
+
+--90 records returned
+First run - 2.655s
+Second run - 0.812s
+
+/* ********************************
+Query#8 - Breakdown by card type - 2 weeks
+**********************************/
+```
+select transaction_date, CARD_PRODUCT_TYPE_KEY, sum(TRANSACTION_AMOUNT) value, count(*) volume
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2017-10-03'
+and transaction_datetime <= '2017-10-17'
+and SETTLEMENT_CURRENCY_KEY = 'GBP'
+and b.USER_KEY = 0
+Group by transaction_date, CARD_PRODUCT_TYPE_KEY;
+```
+
+-- 406 rows
+First run - 2.066s
+Second run - 0.289s
+
+/* ********************************
+Query#9 - Breakdown by card scheme - 2 weeks
+**********************************/
+```
+select transaction_date, CARD_SCHEME_KEY, sum(TRANSACTION_AMOUNT) value, count(*) volume
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2017-08-03'
+and transaction_datetime <= '2017-10-17'
+and SETTLEMENT_CURRENCY_KEY = 'GBP'
+and b.USER_KEY = 0
+Group by transaction_date, CARD_SCHEME_KEY;
+```
+
+--225 records
+First run - 2.43s
+Second run - 0.627s
+ 
+/* ********************************
+Query#10 - Just for fun, trying to force a full able scan for a similar, large query
+**********************************/
+```
+select a.*
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2016-10-03'
+and transaction_datetime < '2018-04-03'
+and b.USER_KEY = 0
+and a.SETTLEMENT_CURRENCY_KEY <> 'HA!'
+order by transaction_datetime asc
+limit 10 offset 10000;
+```
+
+First run - 6.966s
+Second run - 0.546s
+ 
+/* ********************************
+Query#11 - Just for fun, Same query retrieving only three columns
+**********************************/
+```
+select a.TRANSACTION_AMOUNT, b.outlet_key, a.trading_date
+from mymemsqldb.transactions a , mymemsqldb.outlet b
+where a.outlet_key = b.OUTLET_KEY
+and transaction_datetime > '2016-10-03'
+and transaction_datetime < '2018-04-03'
+and b.USER_KEY = 0
+and a.SETTLEMENT_CURRENCY_KEY <> 'HA!'
+order by transaction_datetime asc
+limit 10 offset 10000;
+```
+
+First time - 3.956s
+Second time - 0.116s
 
 ## Questions
 
 1. I'm getting faster response time for a user having ~6k outlet access compared with a user with 1-5 outlet access. This was observed even after repeatedly running the queries. The user with 1 outlet is accessing very small dataset. 
 
 2. Though the tables take about 24GB disk space, the total disk space usage is ~80GB across the cluster as shown on cluster screenshot. Another thing - the increase in disk space is observed during data load and on restarting the cluster it seems compaction happens and the disk space shrinks. (I would assume the ~80GB will likely come down next time I restart the cluster). 
+
+3. Regarding Query#3 - Why user_key change doesn't have same impact on performance as date filter change? I have read on memsql docs that a numeric and string bind variable doesn't cause engine to recompile the query plan (as in Oracle). Does the string includes date/time fields or a date/time filter change causes recompile?
+
