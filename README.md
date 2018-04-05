@@ -440,12 +440,3 @@ where outlet_key = 0;
 
 19,528 rows updated. 
 18.72s
-
-## Questions
-
-1. I'm getting faster response time for a user having ~6k outlet access compared with a user with 1-5 outlet access. This was observed even after repeatedly running the queries. The user with 1 outlet is accessing very small dataset. 
-
-2. Though the tables take about 24GB disk space, the total disk space usage is ~80GB across the cluster as shown on cluster screenshot. Another thing - the increase in disk space is observed during data load and on restarting the cluster it seems compaction happens and the disk space shrinks. (I would assume the ~80GB will likely come down next time I restart the cluster). 
-
-3. Regarding Query#3 - Why user_key change doesn't have same impact on performance as date filter change? I have read on memsql docs that a numeric and string bind variable doesn't cause engine to recompile the query plan (as in Oracle). Does the string includes date/time fields or a date/time filter change causes recompile?
-
