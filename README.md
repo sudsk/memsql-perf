@@ -170,6 +170,7 @@ insert into mymemsqldb.outlet (outlet_key, user_key) values (2,21);
 insert into mymemsqldb.outlet (outlet_key, user_key) values (3,21);
 insert into mymemsqldb.outlet (outlet_key, user_key) values (4,21);
 insert into mymemsqldb.outlet (outlet_key, user_key) values (5,21);
+insert into mymemsqldb.outlet (outlet_key, user_key) values (6,22);
 ```
 
 ## Memsql Ops screens
