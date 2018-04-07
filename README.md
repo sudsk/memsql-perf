@@ -37,7 +37,7 @@ memsql-ops follow -h <master-vm-ip>
 
 From the MemSQL Ops Web UI, add MemSQL nodes with one master and three leaf node roles across the two VMs.
 
-For starting/stopping the cluster use the below commands
+For starting/stopping the cluster use the below commands from the master VM.
 ```
 memsql-ops memsql-stop --all
 memsql-ops memsql-start --all
